@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collision</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #e2e8f0;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Fixed Toggle Switch Styling */
+        .toggle-checkbox {
+            left: 0;
+            border-color: #94a3b8; /* Default Slate-400 */
+            transition: all 0.3s ease;
+        }
+        
+        .toggle-checkbox:checked {
+            left: 1.25rem; /* Moves 50% of the w-10 container */
+            border-color: #10b981;
+        }
+        
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #10b981;
+        }
+        
+        .toggle-label {
+            background-color: #475569; /* Default Slate-600 */
+            transition: background-color 0.3s ease;
+        }
+    </style>
+</head>
+<body class="h-screen w-full overflow-hidden flex flex-col md:flex-row">
+
+    <div class="w-full md:w-96 bg-slate-900 border-r border-slate-800 flex flex-col h-full overflow-y-auto z-20 shadow-2xl">
+        <div class="p-6 border-b border-slate-800">
+            <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-rose-400 to-orange-500">
+                <i class="fa-solid fa-burst mr-2 text-white"></i>ShatterSim
+            </h1>
+            <p class="text-slate-400 text-sm mt-1">Pro Edition</p>
+        </div>
+
+        <div class="p-6 space-y-8 flex-1">
+            
+            <!-- Feature Toggles -->
+            <div class="space-y-4 p-4 bg-slate-800 rounded-lg border border-slate-700">
+                <h3 class="text-xs uppercase tracking-widest text-slate-500 font-bold mb-2">Advanced Settings</h3>
+                
+                <!-- Sound Toggle -->
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-slate-300"><i class="fa-solid fa-volume-high w-5"></i> Audio Synthesis</span>
+                    <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                        <input type="checkbox" name="toggle" id="toggle-sound" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                        <label for="toggle-sound" class="toggle-label block overflow-hidden h-5 rounded-full cursor-pointer"></label>
+                    </div>
+                </div>
+
+                <!-- Cinematic Toggle -->
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-slate-300"><i class="fa-solid fa-film w-5"></i> Cinematic Mode</span>
+                    <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                        <input type="checkbox" name="toggle" id="toggle-cinematic" checked class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                        <label for="toggle-cinematic" class="toggle-label block overflow-hidden h-5 rounded-full cursor-pointer"></label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-rose-500"></div>
+                    <h3 class="text-xs uppercase tracking-widest text-slate-500 font-bold">Left Object (Red)</h3>
+                </div>
+                
+                <div>
+                    <label class="text-xs text-slate-400">Velocity</label>
+                    <div class="flex items-center gap-2 mt-1">
+                        <input type="number" id="b1-vx" value="25" min="0" max="50" class="flex-1 bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm mono focus:outline-none focus:border-rose-500 transition-colors text-white">
+                        <span class="text-slate-500 mono text-xs">m/s</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-cyan-500"></div>
+                    <h3 class="text-xs uppercase tracking-widest text-slate-500 font-bold">Right Object (Blue)</h3>
+                </div>
+
+                <div>
+                    <label class="text-xs text-slate-400">Velocity</label>
+                    <div class="flex items-center gap-2 mt-1">
+                        <input type="number" id="b2-vx" value="-35" min="-50" max="0" class="flex-1 bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm mono focus:outline-none focus:border-cyan-500 transition-colors text-white">
+                        <span class="text-slate-500 mono text-xs">m/s</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="p-6 border-t border-slate-800 bg-slate-900/50">
+            <div class="grid grid-cols-2 gap-3">
+                <button id="btn-reset" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded text-sm font-semibold transition-all flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-rotate-left"></i> Reset
+                </button>
+                <button id="btn-toggle" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded text-sm font-semibold transition-all shadow-[0_0_15px_rgba(225,29,72,0.5)] flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-play" id="icon-play"></i> <span id="text-play">Launch</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex-1 relative bg-slate-950 h-[50vh] md:h-full overflow-hidden" id="canvas-container">
+        <canvas id="simCanvas" class="block"></canvas>
+
+        <div class="absolute top-4 right-4 glass-panel rounded-lg p-4 text-xs mono space-y-2 pointer-events-none opacity-80">
+            <div class="text-slate-400 mb-2 font-bold">IMPACT METRICS</div>
+            <div class="flex justify-between gap-8">
+                <span class="text-rose-400">Velocity A:</span>
+                <span id="stat-v-a">0.0</span>
+            </div>
+            <div class="flex justify-between gap-8">
+                <span class="text-cyan-400">Velocity B:</span>
+                <span id="stat-v-b">0.0</span>
+            </div>
+            <div class="h-px bg-slate-700 my-1"></div>
+            <div class="flex justify-between gap-8">
+                <span class="text-emerald-400">Time Scale:</span>
+                <span id="stat-time">1.0x</span>
+            </div>
+             <div class="flex justify-between gap-8">
+                <span class="text-slate-400">Status:</span>
+                <span id="stat-status">READY</span>
+            </div>
+        </div>
+    </div>
+
+<script>
+/**
+ * ADVANCED PHYSICS ENGINE
+ * Features: Web Audio API Synthesis, Screen Shake, Shockwaves, Time Dilation
+ */
+
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d');
+const container = document.getElementById('canvas-container');
+
+// State
+let animationId;
+let isRunning = false;
+let isShattered = false;
+let particles = [];
+let shockwaves = [];
+
+// Simulation Constants
+const GRAVITY = 0.4;
+const DRAG = 0.99;
+let timeScale = 1.0;
+let shakeIntensity = 0;
+
+// --- AUDIO ENGINE (Procedural Sound) ---
+const AudioEngine = {
+    ctx: null,
+    enabled: false,
+    
+    init() {
+        if (!this.ctx) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            this.ctx = new AudioContext();
+        }
+        this.enabled = document.getElementById('toggle-sound').checked;
+    },
+
+    playLaunch() {
+        if (!this.enabled || !this.ctx) return;
+        this.ctx.resume();
+        
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(600, this.ctx.currentTime + 0.3);
+        
+        gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+        
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.3);
+    },
+
+    playShatter() {
+        if (!this.enabled || !this.ctx) return;
+        this.ctx.resume();
+
+        const bufferSize = this.ctx.sampleRate * 0.5; // 0.5 seconds
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+
+        // White noise generation
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        // Filter for "crunch" sound
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 1000;
+
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.8, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.5);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        noise.start();
+    }
+};
+
+// --- VISUAL FX CLASSES ---
+
+class Shockwave {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.radius = 10;
+        this.opacity = 1;
+        this.width = 20;
+    }
+    
+    update() {
+        this.radius += 15 * timeScale; // Affected by slowmo
+        this.width *= 0.95;
+        this.opacity -= 0.05 * timeScale;
+    }
+    
+    draw() {
+        if(this.opacity <= 0) return;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.lineWidth = this.width;
+        ctx.strokeStyle = `rgba(255, 255, 255, ${this.opacity * 0.5})`;
+        ctx.stroke();
+        ctx.restore();
+    }
+}
+
+class Shard {
+    constructor(x, y, color, vx, vy) {
+        this.x = x;
+        this.y = y;
+        this.color = color;
+        this.vx = vx;
+        this.vy = vy;
+        this.size = Math.random() * 6 + 2;
+        this.life = 1.0;
+        this.decay = Math.random() * 0.01 + 0.005;
+        this.rotation = Math.random() * Math.PI;
+        this.rotSpeed = (Math.random() - 0.5) * 0.2;
+    }
+
+    update() {
+        // Apply TimeScale to physics integration
+        this.vy += GRAVITY * timeScale;
+        
+        // Drag is tricky with timeScale, approximating:
+        this.vx *= Math.pow(DRAG, timeScale);
+        this.vy *= Math.pow(DRAG, timeScale);
+        
+        this.x += this.vx * timeScale;
+        this.y += this.vy * timeScale;
+        
+        this.rotation += this.rotSpeed * timeScale;
+        this.life -= this.decay * timeScale;
+    }
+
+    draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+        ctx.globalAlpha = Math.max(0, this.life);
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.moveTo(-this.size, -this.size);
+        ctx.lineTo(this.size, -this.size/2);
+        ctx.lineTo(0, this.size);
+        ctx.fill();
+        ctx.restore();
+    }
+}
+
+class Ball {
+    constructor(x, y, radius, color) {
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.color = color;
+        this.vx = 0;
+        this.vy = 0;
+        this.visible = true;
+        this.trail = [];
+    }
+
+    draw() {
+        if (!this.visible) return;
+
+        // Trail Effect
+        ctx.save();
+        for(let i=0; i<this.trail.length; i++) {
+            const pos = this.trail[i];
+            const alpha = i / this.trail.length;
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, this.radius * (0.5 + 0.5*alpha), 0, Math.PI*2);
+            ctx.fillStyle = this.color;
+            ctx.globalAlpha = 0.2 * alpha;
+            ctx.fill();
+        }
+        ctx.restore();
+
+        // Main Body
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        const gradient = ctx.createRadialGradient(this.x - this.radius/3, this.y - this.radius/3, this.radius/10, this.x, this.y, this.radius);
+        gradient.addColorStop(0, '#fff');
+        gradient.addColorStop(0.3, this.color);
+        gradient.addColorStop(1, '#0f172a');
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = this.color;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.closePath();
+    }
+
+    update() {
+        if (!this.visible) return;
+        
+        this.x += this.vx * timeScale;
+        this.y += this.vy * timeScale;
+        
+        // Store trail positions
+        if (isRunning && timeScale > 0) {
+            this.trail.push({x: this.x, y: this.y});
+            if (this.trail.length > 10) this.trail.shift();
+        }
+    }
+}
+
+// --- MAIN LOGIC ---
+
+let ball1, ball2;
+
+function init() {
+    resizeCanvas();
+    const cy = canvas.height / 2;
+    const w = canvas.width;
+
+    ball1 = new Ball(100, cy, 30, '#f43f5e');
+    ball2 = new Ball(w - 100, cy, 30, '#06b6d4');
+    
+    isShattered = false;
+    particles = [];
+    shockwaves = [];
+    timeScale = 1.0;
+    shakeIntensity = 0;
+    
+    document.getElementById('stat-status').innerText = "READY";
+    document.getElementById('stat-status').className = "text-emerald-400";
+    
+    updateStats();
+    draw();
+}
+
+function applyUserVelocities() {
+    ball1.vx = parseFloat(document.getElementById('b1-vx').value);
+    ball2.vx = parseFloat(document.getElementById('b2-vx').value);
+}
+
+function createExplosion(x, y, b1, b2) {
+    AudioEngine.playShatter();
+    
+    // Add Visual Impact
+    shockwaves.push(new Shockwave(x, y));
+    
+    // Only apply screen shake if Cinematic Mode is on
+    if (document.getElementById('toggle-cinematic').checked) {
+        shakeIntensity = 20; 
+    }
+
+    const particleCount = 120;
+    
+    // Helper for random shards
+    const spawnShards = (count, originBall, dirMultiplier) => {
+        for (let i = 0; i < count; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Math.random() * 12 + 2;
+            const vx = Math.cos(angle) * speed + originBall.vx * 0.4; 
+            const vy = Math.sin(angle) * speed + (Math.random() - 0.5) * 15; 
+            particles.push(new Shard(originBall.x + (Math.random()-0.5)*20, originBall.y, originBall.color, vx, vy));
+        }
+    };
+
+    spawnShards(particleCount/2, b1, 1);
+    spawnShards(particleCount/2, b2, -1);
+    
+    // Sparks
+    for(let i=0; i<30; i++) {
+         const angle = Math.random() * Math.PI * 2;
+         const speed = Math.random() * 20 + 5;
+         particles.push(new Shard(x, y, '#fff', Math.cos(angle)*speed, Math.sin(angle)*speed));
+    }
+}
+
+function checkCollision() {
+    if (isShattered) return;
+
+    const dx = ball2.x - ball1.x;
+    const dy = ball2.y - ball1.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const combinedRadius = ball1.radius + ball2.radius;
+
+    // Reset time scale to normal (removed proximity slow-mo)
+    timeScale = 1.0;
+
+    if (distance < combinedRadius) {
+        isShattered = true;
+        ball1.visible = false;
+        ball2.visible = false;
+        // Removed impact slow-mo (timeScale = 0.2)
+        
+        const cx = ball1.x + (dx/distance) * ball1.radius;
+        const cy = ball1.y + (dy/distance) * ball1.radius;
+
+        createExplosion(cx, cy, ball1, ball2);
+        
+        document.getElementById('stat-status').innerText = "IMPACT";
+        document.getElementById('stat-status').className = "text-rose-500 font-bold blink";
+    }
+}
+
+function update() {
+    if (!isRunning) return;
+
+    // Screen Shake Application
+    ctx.fillStyle = '#020617';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.save();
+    if (shakeIntensity > 0) {
+        const dx = (Math.random() - 0.5) * shakeIntensity;
+        const dy = (Math.random() - 0.5) * shakeIntensity;
+        ctx.translate(dx, dy);
+        shakeIntensity *= 0.9; // Decay shake
+        if(shakeIntensity < 0.5) shakeIntensity = 0;
+    }
+
+    if (!isShattered) {
+        ball1.update();
+        ball2.update();
+        ball1.y = canvas.height / 2; // Keep centered vertically
+        ball2.y = canvas.height / 2;
+        checkCollision();
+        ball1.draw();
+        ball2.draw();
+    } else {
+        // Recover time scale slowly after explosion
+        if (timeScale < 1.0) timeScale += 0.01;
+
+        // Update Particles
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.update();
+            p.draw();
+            if (p.life <= 0) particles.splice(i, 1);
+        }
+        
+        // Update Shockwaves
+        for (let i = shockwaves.length - 1; i >= 0; i--) {
+            const s = shockwaves[i];
+            s.update();
+            s.draw();
+            if (s.opacity <= 0) shockwaves.splice(i, 1);
+        }
+
+        if (particles.length === 0 && shockwaves.length === 0) {
+            finishSimulation();
+        }
+    }
+    
+    ctx.restore(); // Restore from screen shake
+    updateStats();
+    animationId = requestAnimationFrame(update);
+}
+
+function finishSimulation() {
+    document.getElementById('stat-status').innerText = "FINISHED";
+    document.getElementById('stat-status').className = "text-slate-500";
+    isRunning = false;
+    playIcon.classList.replace('fa-pause', 'fa-play');
+    playText.innerText = "Reset";
+}
+
+function draw() {
+    ctx.fillStyle = '#020617'; 
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if(ball1 && ball2) {
+        ball1.draw();
+        ball2.draw();
+    }
+}
+
+function updateStats() {
+    if(!ball1 || !ball2) return;
+    document.getElementById('stat-v-a').innerText = (ball1.vx * timeScale).toFixed(2);
+    document.getElementById('stat-v-b').innerText = (ball2.vx * timeScale).toFixed(2);
+    document.getElementById('stat-time').innerText = timeScale.toFixed(2) + 'x';
+}
+
+// UI Controls
+const btnToggle = document.getElementById('btn-toggle');
+const btnReset = document.getElementById('btn-reset');
+const playIcon = document.getElementById('icon-play');
+const playText = document.getElementById('text-play');
+const soundToggle = document.getElementById('toggle-sound');
+
+// Audio context needs user gesture to unlock
+soundToggle.addEventListener('change', () => {
+    if (soundToggle.checked) AudioEngine.init();
+    AudioEngine.enabled = soundToggle.checked;
+});
+
+btnToggle.addEventListener('click', () => {
+    // Init audio on first click if enabled
+    if(soundToggle.checked) AudioEngine.init();
+
+    if (playText.innerText === "Reset") {
+        init();
+        return;
+    }
+
+    isRunning = !isRunning;
+    if (isRunning) {
+        if(!isShattered && ball1.vx === 0) {
+             applyUserVelocities();
+             AudioEngine.playLaunch();
+        }
+        
+        playIcon.classList.replace('fa-play', 'fa-pause');
+        playText.innerText = "Pause";
+        btnToggle.classList.remove('bg-rose-600', 'hover:bg-rose-500');
+        btnToggle.classList.add('bg-amber-600', 'hover:bg-amber-500');
+        update();
+    } else {
+        playIcon.classList.replace('fa-pause', 'fa-play');
+        playText.innerText = "Resume";
+        btnToggle.classList.add('bg-rose-600', 'hover:bg-rose-500');
+        btnToggle.classList.remove('bg-amber-600', 'hover:bg-amber-500');
+        cancelAnimationFrame(animationId);
+    }
+});
+
+btnReset.addEventListener('click', () => {
+    isRunning = false;
+    cancelAnimationFrame(animationId);
+    playIcon.classList.replace('fa-pause', 'fa-play');
+    playText.innerText = "Launch";
+    btnToggle.classList.add('bg-rose-600', 'hover:bg-rose-500');
+    btnToggle.classList.remove('bg-amber-600', 'hover:bg-amber-500');
+    init();
+});
+
+function resizeCanvas() {
+    canvas.width = container.clientWidth;
+    canvas.height = container.clientHeight;
+}
+
+window.addEventListener('resize', () => {
+    resizeCanvas();
+    if (!isRunning && !isShattered) draw();
+});
+
+init();
+</script>
+</body>
+</html>
