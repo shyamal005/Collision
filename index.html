@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Collision</title>
+    <title>SDE Physics: Collision</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -25,15 +25,14 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
         
-        /* Fixed Toggle Switch Styling */
         .toggle-checkbox {
             left: 0;
-            border-color: #94a3b8; /* Default Slate-400 */
+            border-color: #94a3b8;
             transition: all 0.3s ease;
         }
         
         .toggle-checkbox:checked {
-            left: 1.25rem; /* Moves 50% of the w-10 container */
+            left: 1.25rem;
             border-color: #10b981;
         }
         
@@ -42,7 +41,7 @@
         }
         
         .toggle-label {
-            background-color: #475569; /* Default Slate-600 */
+            background-color: #475569;
             transition: background-color 0.3s ease;
         }
     </style>
@@ -52,27 +51,23 @@
     <div class="w-full md:w-96 bg-slate-900 border-r border-slate-800 flex flex-col h-full overflow-y-auto z-20 shadow-2xl">
         <div class="p-6 border-b border-slate-800">
             <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-rose-400 to-orange-500">
-                <i class="fa-solid fa-burst mr-2 text-white"></i>ShatterSim
+                <i class="fa-solid fa-burst mr-2 text-white"></i>Collision
             </h1>
-            <p class="text-slate-400 text-sm mt-1">Pro Edition</p>
         </div>
 
         <div class="p-6 space-y-8 flex-1">
             
-            <!-- Feature Toggles -->
             <div class="space-y-4 p-4 bg-slate-800 rounded-lg border border-slate-700">
                 <h3 class="text-xs uppercase tracking-widest text-slate-500 font-bold mb-2">Advanced Settings</h3>
                 
-                <!-- Sound Toggle -->
                 <div class="flex items-center justify-between">
-                    <span class="text-sm text-slate-300"><i class="fa-solid fa-volume-high w-5"></i> Audio Synthesis</span>
+                    <span class="text-sm text-slate-300"><i class="fa-solid fa-volume-high w-5"></i> Audio</span>
                     <div class="relative inline-block w-10 mr-2 align-middle select-none">
                         <input type="checkbox" name="toggle" id="toggle-sound" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
                         <label for="toggle-sound" class="toggle-label block overflow-hidden h-5 rounded-full cursor-pointer"></label>
                     </div>
                 </div>
 
-                <!-- Cinematic Toggle -->
                 <div class="flex items-center justify-between">
                     <span class="text-sm text-slate-300"><i class="fa-solid fa-film w-5"></i> Cinematic Mode</span>
                     <div class="relative inline-block w-10 mr-2 align-middle select-none">
@@ -140,10 +135,6 @@
                 <span id="stat-v-b">0.0</span>
             </div>
             <div class="h-px bg-slate-700 my-1"></div>
-            <div class="flex justify-between gap-8">
-                <span class="text-emerald-400">Time Scale:</span>
-                <span id="stat-time">1.0x</span>
-            </div>
              <div class="flex justify-between gap-8">
                 <span class="text-slate-400">Status:</span>
                 <span id="stat-status">READY</span>
@@ -152,29 +143,21 @@
     </div>
 
 <script>
-/**
- * ADVANCED PHYSICS ENGINE
- * Features: Web Audio API Synthesis, Screen Shake, Shockwaves, Time Dilation
- */
-
 const canvas = document.getElementById('simCanvas');
 const ctx = canvas.getContext('2d');
 const container = document.getElementById('canvas-container');
 
-// State
 let animationId;
 let isRunning = false;
 let isShattered = false;
 let particles = [];
 let shockwaves = [];
 
-// Simulation Constants
 const GRAVITY = 0.4;
 const DRAG = 0.99;
 let timeScale = 1.0;
 let shakeIntensity = 0;
 
-// --- AUDIO ENGINE (Procedural Sound) ---
 const AudioEngine = {
     ctx: null,
     enabled: false,
@@ -212,11 +195,10 @@ const AudioEngine = {
         if (!this.enabled || !this.ctx) return;
         this.ctx.resume();
 
-        const bufferSize = this.ctx.sampleRate * 0.5; // 0.5 seconds
+        const bufferSize = this.ctx.sampleRate * 0.5;
         const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
         const data = buffer.getChannelData(0);
 
-        // White noise generation
         for (let i = 0; i < bufferSize; i++) {
             data[i] = Math.random() * 2 - 1;
         }
@@ -224,7 +206,6 @@ const AudioEngine = {
         const noise = this.ctx.createBufferSource();
         noise.buffer = buffer;
 
-        // Filter for "crunch" sound
         const filter = this.ctx.createBiquadFilter();
         filter.type = 'lowpass';
         filter.frequency.value = 1000;
@@ -240,8 +221,6 @@ const AudioEngine = {
     }
 };
 
-// --- VISUAL FX CLASSES ---
-
 class Shockwave {
     constructor(x, y) {
         this.x = x;
@@ -252,7 +231,7 @@ class Shockwave {
     }
     
     update() {
-        this.radius += 15 * timeScale; // Affected by slowmo
+        this.radius += 15 * timeScale;
         this.width *= 0.95;
         this.opacity -= 0.05 * timeScale;
     }
@@ -284,10 +263,8 @@ class Shard {
     }
 
     update() {
-        // Apply TimeScale to physics integration
         this.vy += GRAVITY * timeScale;
         
-        // Drag is tricky with timeScale, approximating:
         this.vx *= Math.pow(DRAG, timeScale);
         this.vy *= Math.pow(DRAG, timeScale);
         
@@ -328,7 +305,6 @@ class Ball {
     draw() {
         if (!this.visible) return;
 
-        // Trail Effect
         ctx.save();
         for(let i=0; i<this.trail.length; i++) {
             const pos = this.trail[i];
@@ -341,7 +317,6 @@ class Ball {
         }
         ctx.restore();
 
-        // Main Body
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
         const gradient = ctx.createRadialGradient(this.x - this.radius/3, this.y - this.radius/3, this.radius/10, this.x, this.y, this.radius);
@@ -364,15 +339,12 @@ class Ball {
         this.x += this.vx * timeScale;
         this.y += this.vy * timeScale;
         
-        // Store trail positions
         if (isRunning && timeScale > 0) {
             this.trail.push({x: this.x, y: this.y});
             if (this.trail.length > 10) this.trail.shift();
         }
     }
 }
-
-// --- MAIN LOGIC ---
 
 let ball1, ball2;
 
@@ -405,17 +377,14 @@ function applyUserVelocities() {
 function createExplosion(x, y, b1, b2) {
     AudioEngine.playShatter();
     
-    // Add Visual Impact
     shockwaves.push(new Shockwave(x, y));
     
-    // Only apply screen shake if Cinematic Mode is on
     if (document.getElementById('toggle-cinematic').checked) {
         shakeIntensity = 20; 
     }
 
     const particleCount = 120;
     
-    // Helper for random shards
     const spawnShards = (count, originBall, dirMultiplier) => {
         for (let i = 0; i < count; i++) {
             const angle = Math.random() * Math.PI * 2;
@@ -429,7 +398,6 @@ function createExplosion(x, y, b1, b2) {
     spawnShards(particleCount/2, b1, 1);
     spawnShards(particleCount/2, b2, -1);
     
-    // Sparks
     for(let i=0; i<30; i++) {
          const angle = Math.random() * Math.PI * 2;
          const speed = Math.random() * 20 + 5;
@@ -445,14 +413,12 @@ function checkCollision() {
     const distance = Math.sqrt(dx * dx + dy * dy);
     const combinedRadius = ball1.radius + ball2.radius;
 
-    // Reset time scale to normal (removed proximity slow-mo)
     timeScale = 1.0;
 
     if (distance < combinedRadius) {
         isShattered = true;
         ball1.visible = false;
         ball2.visible = false;
-        // Removed impact slow-mo (timeScale = 0.2)
         
         const cx = ball1.x + (dx/distance) * ball1.radius;
         const cy = ball1.y + (dy/distance) * ball1.radius;
@@ -467,7 +433,6 @@ function checkCollision() {
 function update() {
     if (!isRunning) return;
 
-    // Screen Shake Application
     ctx.fillStyle = '#020617';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
@@ -476,23 +441,21 @@ function update() {
         const dx = (Math.random() - 0.5) * shakeIntensity;
         const dy = (Math.random() - 0.5) * shakeIntensity;
         ctx.translate(dx, dy);
-        shakeIntensity *= 0.9; // Decay shake
+        shakeIntensity *= 0.9;
         if(shakeIntensity < 0.5) shakeIntensity = 0;
     }
 
     if (!isShattered) {
         ball1.update();
         ball2.update();
-        ball1.y = canvas.height / 2; // Keep centered vertically
+        ball1.y = canvas.height / 2;
         ball2.y = canvas.height / 2;
         checkCollision();
         ball1.draw();
         ball2.draw();
     } else {
-        // Recover time scale slowly after explosion
         if (timeScale < 1.0) timeScale += 0.01;
 
-        // Update Particles
         for (let i = particles.length - 1; i >= 0; i--) {
             const p = particles[i];
             p.update();
@@ -500,7 +463,6 @@ function update() {
             if (p.life <= 0) particles.splice(i, 1);
         }
         
-        // Update Shockwaves
         for (let i = shockwaves.length - 1; i >= 0; i--) {
             const s = shockwaves[i];
             s.update();
@@ -513,7 +475,7 @@ function update() {
         }
     }
     
-    ctx.restore(); // Restore from screen shake
+    ctx.restore();
     updateStats();
     animationId = requestAnimationFrame(update);
 }
@@ -539,24 +501,20 @@ function updateStats() {
     if(!ball1 || !ball2) return;
     document.getElementById('stat-v-a').innerText = (ball1.vx * timeScale).toFixed(2);
     document.getElementById('stat-v-b').innerText = (ball2.vx * timeScale).toFixed(2);
-    document.getElementById('stat-time').innerText = timeScale.toFixed(2) + 'x';
 }
 
-// UI Controls
 const btnToggle = document.getElementById('btn-toggle');
 const btnReset = document.getElementById('btn-reset');
 const playIcon = document.getElementById('icon-play');
 const playText = document.getElementById('text-play');
 const soundToggle = document.getElementById('toggle-sound');
 
-// Audio context needs user gesture to unlock
 soundToggle.addEventListener('change', () => {
     if (soundToggle.checked) AudioEngine.init();
     AudioEngine.enabled = soundToggle.checked;
 });
 
 btnToggle.addEventListener('click', () => {
-    // Init audio on first click if enabled
     if(soundToggle.checked) AudioEngine.init();
 
     if (playText.innerText === "Reset") {
