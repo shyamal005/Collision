@@ -20,12 +20,8 @@ Just pure math and JavaScript.
 
 ---
 
-<div align="center">
 
-<!-- Replace with your real demo GIF for maximum impact -->
-<img src="https://via.placeholder.com/800x400/0f172a/38bdf8?text=Demo+Preview+Here" width="100%" alt="Collision Engine Demo"/>
 
-</div>
 
 ---
 
